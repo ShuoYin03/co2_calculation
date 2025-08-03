@@ -14,16 +14,28 @@ async def lifespan(app: FastAPI):
     playwright = await async_playwright().start()
     browser = await playwright.chromium.launch(
         headless=True,
+        args=["--no-sandbox"],
+    )
+    context = await browser.new_context(
+        user_agent=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/114.0.0.0 Safari/537.36"
+        ),
+        viewport={"width": 1280, "height": 720},
+        locale="fr-FR",  # 如果目标站点主要面向法国，可以设置成 fr-FR
     )
     spider = CO2Spider()
 
     app.state.playwright = playwright
     app.state.browser = browser
+    app.state.context = context
     app.state.spider = spider
     
     yield
     
     try:
+        await context.close()
         await browser.close()
         await playwright.stop()
     except Exception as e:
@@ -42,8 +54,8 @@ async def calculate_tax(req: CalculateTaxRequest):
 
     pf = calc_pf(req.power, req.emission)
     pf = 6
-    browser = app.state.browser
-    page = await browser.new_page()
+    context = app.state.context
+    page = await context.new_page()
     
     try:
         tax_amount = await app.state.spider.run(

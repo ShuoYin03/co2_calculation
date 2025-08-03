@@ -32,7 +32,10 @@ class CO2Spider:
         
     async def run(self, page: Page, date: str, power: str, emission: str, energy: str, weight: str, region: str):
         await page.goto(self.url)
-        await self.click(page, COOKIE_CONSENT_BUTTONS, "Cookie consent buttons not found")
+        try:
+            await self.click(page, COOKIE_CONSENT_BUTTONS, "Cookie consent buttons not found")
+        except ValueError as e:
+            pass
         await self.select(page, SELECT_DEMARCHE_SELECTORS, value="1", error_message="Demarche select not found")
         await self.click(page, LABEL_FRANCE_IMPORT_SELECTORS, "France import label not found")
         await self.select(page, SELECT_TYPE_VEHICULE_SELECTORS, value="1", error_message="Type vehicule select not found")
@@ -91,7 +94,6 @@ class CO2Spider:
             except Exception as e:
                 logger.warning(f"Input error for selector {selector}: {e}")
 
-        input()
         raise ValueError(error_message)
 
     async def select(
@@ -151,7 +153,7 @@ class CO2Spider:
         await self.browser.close()
         await self.playwright.stop()
 
-if __name__ == "__main__":
-    import asyncio
-    spider = CO2Spider()
-    asyncio.run(spider.run("2025-07-31", "1000", "100", "1", "1500", "75"))
+# if __name__ == "__main__":
+#     import asyncio
+#     spider = CO2Spider()
+#     asyncio.run(spider.run("2025-07-31", "1000", "100", "1", "1500", "75"))
