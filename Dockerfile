@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . .
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
-RUN python -m playwright install --with-deps
+RUN playwright install --with-deps
 
 EXPOSE 8000
 
