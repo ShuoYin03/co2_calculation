@@ -2,7 +2,6 @@ from playwright.async_api import Page
 from playwright.async_api import TimeoutError
 from typing import List, Optional
 from spider.selectors import (
-    COOKIE_CONSENT_BUTTONS,
     LABEL_FRANCE_IMPORT_SELECTORS,
     LABEL_INVALIDITE_NON_SELECTORS,
     SELECT_DEMARCHE_SELECTORS,
@@ -21,7 +20,6 @@ from spider.selectors import (
     COUT_CERTIFICAT_SELECTORS
 )
 import logging
-import asyncio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,17 +30,13 @@ class CO2Spider:
         
     async def run(self, page: Page, date: str, power: str, emission: str, energy: str, weight: str, region: str):
         await page.goto(self.url)
-        try:
-            await self.click(page, COOKIE_CONSENT_BUTTONS, "Cookie consent buttons not found")
-        except ValueError as e:
-            pass
         await self.select(page, SELECT_DEMARCHE_SELECTORS, value="1", error_message="Demarche select not found")
         await self.click(page, LABEL_FRANCE_IMPORT_SELECTORS, "France import label not found")
         await self.select(page, SELECT_TYPE_VEHICULE_SELECTORS, value="1", error_message="Type vehicule select not found")
         await self.input(page, INPUT_DATE_MISE_EN_CIRCULATION_SELECTORS, content=date, error_message="Date input not found")
         await self.input(page, INPUT_PUISSANCE_ADM_SAISIE_SELECTORS, content=power, error_message="Puissance input not found")
         await self.select(page, SELECT_ENERGIE_SELECTORS, value=energy, error_message="Type vehicule select not found")
-        await self.click(page, LABEL_INVALIDITE_NON_SELECTORS, "Invalidite non label not found")
+        await self.click(page, LABEL_INVALIDITE_NON_SELECTORS, "Invalidite non label not found", timeout=2000)
         await self.click(page, LABEL_RECEPTION_COMMUNAUTAIRE_OUI_SELECTORS, "Reception communautaire oui label not found")
         await self.input(page, INPUT_TAUX_CO2_SAISI_SELECTORS, content=emission, error_message="Taux CO2 input not found")
         await self.click(page, LABEL_VEHICULE_8PLACES_NON_SELECTORS, "Vehicule 8 places non label not found")
@@ -152,8 +146,3 @@ class CO2Spider:
     async def close(self):
         await self.browser.close()
         await self.playwright.stop()
-
-# if __name__ == "__main__":
-#     import asyncio
-#     spider = CO2Spider()
-#     asyncio.run(spider.run("2025-07-31", "1000", "100", "1", "1500", "75"))
