@@ -70,15 +70,15 @@ INPUT_TAUX_CO2_SAISI_SELECTORS = [
 ]
 
 LABEL_VEHICULE_8PLACES_NON_SELECTORS = [
-    "label[for='vehicule_8Places_2']",                 # for 属性唯一，首选
-    "label.fr-label[for='vehicule_8Places_2']",        # class + for 联合
-    "label:has-text('Non')",                           # 文本兜底（仅适用于页面唯一"Non"）
+    "label[for='vehicule_8Places_2']",
+    "label.fr-label[for='vehicule_8Places_2']",
+    "label:has-text('Non')",
 ]
 
 LABEL_PERSON_MORALE_LOCATION_NON_SELECTORS = [
-    "label[for='PersonMoraleLocation_2']",                # for 属性唯一，首选
-    "label.fr-label[for='PersonMoraleLocation_2']",       # class + for 联合，保险
-    "label:has-text('Non')",                              # 文本兜底（页面唯一时安全）
+    "label[for='PersonMoraleLocation_2']",
+    "label.fr-label[for='PersonMoraleLocation_2']",
+    "label:has-text('Non')",
 ]
 
 LABEL_PERSONNE_MORALE_NON_SELECTORS = [
@@ -102,13 +102,19 @@ SELECT_DEPARTEMENT_SELECTORS = [
     "select[data-fr-js-select-actionee='true'][name='departement']", # data-* 属性 + name
 ]
 
+BUTTON_RESULT_SELECTORS = [
+    "button#btn_g6k_",
+    "button.fr-btn#btn_g6k_",
+    "button[name='result']",                    # name 属性，兜底
+    "button[data-fr-js-button-actionee='true']",# data 属性，部分页面专用
+    "button[type='submit'][id='btn_g6k_']",     # type+id 联合
+    "button.fr-btn[type='submit'][name='result']", # class+type+name
+    "button:has-text('Résultat')",              # 文本兜底（适合 Playwright/BS4 >=4.12/jQuery）
+]
 
-ENERGY_TYPE_TO_OPTION_VALUE = {
-    "EL": "8",  # Électricité (EL), Hydrogène (H2) ou combinaison des 2 (HE, HH)
-    "EH": "16", # Essence/électricité - hybride non rechargeable (EH)
-    "ES": "1",  # Essence (ES)
-    "GO": "2",  # Gazole (GO), Biogazole B100 (BL)
-    "EE": "3",  # Essence/électricité - hybride rechargeable (EE)
-    "GL": "12", # Gazole/électricité, Biogazole/électricité - hybride rechargeable (GL, BL)
-    "GH": "13", # Gazole/électricité, Biogazole/électricité - hybride non rechargeable (GH, BH)
-}
+COUT_CERTIFICAT_SELECTORS = [
+    "div#Résultat-panel-1-blockinfo-4-chapter-1-section-1-content p.sp-blue strong",
+    "div.section-content p.sp-blue strong",
+    "div.section-content strong",
+    "p.sp-blue strong",
+]
