@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: my-fastapi-playwright
+    name: co2_calculation
     env: docker
     plan: free
     autoDeploy: true
