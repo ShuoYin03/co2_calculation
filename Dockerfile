@@ -2,10 +2,12 @@ FROM mcr.microsoft.com/playwright/python:v1.54.0-jammy
 
 WORKDIR /app
 
-COPY . .
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-RUN pip install --upgrade pip && pip install -r requirements.txt
 RUN playwright install --with-deps
+
+COPY . .
 
 EXPOSE 8000
 

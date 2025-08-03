@@ -2,5 +2,6 @@ services:
   - type: web
     name: co2_calculation
     env: docker
+    dockerfilePath: Dockerfile
     plan: free
     autoDeploy: true
