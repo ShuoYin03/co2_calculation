@@ -64,7 +64,7 @@ async def calculate_tax(req: CalculateTaxRequest):
             region=str(req.region),
         )
 
-        tax_amount = float(tax_amount.replace("€", "").replace(",", ".").strip())
+        tax_amount = float(tax_amount.replace("€", "").replace(",", ".").replace(" ", "").strip())
 
         return {"result": {
             "tax_amount": tax_amount,
