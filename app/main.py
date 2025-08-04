@@ -42,7 +42,6 @@ async def calculate_tax(req: CalculateTaxRequest):
     reg_date = f"{reg_parts[1]}-{reg_parts[0]}-01"
 
     pf = calc_pf(req.power, req.emission)
-    pf = 6
     context = await app.state.browser.new_context(
         user_agent=(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
