@@ -29,7 +29,17 @@ class CO2Spider:
         self.url = "https://www.service-public.fr/simulateur/calcul/cout-certificat-immatriculation"
         
     async def run(self, page: Page, date: str, power: str, emission: str, energy: str, weight: str, region: str):
-        await page.goto(self.url)
+        try:
+            await page.goto(self.url, timeout=60000, wait_until="domcontentloaded")
+        except TimeoutError as e:
+            logger.error(f"Initial navigation timeout to {self.url}: {e}")
+
+            try:
+                await page.goto(self.url, timeout=120000, wait_until="networkidle")
+            except TimeoutError as e2:
+                logger.error(f"Retry navigation timeout to {self.url}: {e2}")
+
+                raise ValueError(f"Navigation to {self.url} timed out after retries") from e2
         await self.select(page, SELECT_DEMARCHE_SELECTORS, value="1", error_message="Demarche select not found")
         await self.click(page, LABEL_FRANCE_IMPORT_SELECTORS, "France import label not found")
         await self.select(page, SELECT_TYPE_VEHICULE_SELECTORS, value="1", error_message="Type vehicule select not found")

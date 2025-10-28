@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from spider.co2_spider import CO2Spider
 from utils.security import validate_api_key
 from contextlib import asynccontextmanager
@@ -48,7 +48,7 @@ async def calculate_tax(req: CalculateTaxRequest):
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/114.0.0.0 Safari/537.36"
         ),
-        viewport={"width": 1280, "height": 720},
+        viewport={"width": 1920, "height": 1080},
         locale="fr-FR",
     )
     page = await context.new_page()
@@ -63,12 +63,18 @@ async def calculate_tax(req: CalculateTaxRequest):
             weight=str(req.weight),
             region=str(req.region),
         )
-
         tax_amount = float(tax_amount.replace("€", "").replace(",", ".").replace(" ", "").strip())
 
         return {"result": {
             "tax_amount": tax_amount,
             "total_price": req.price + tax_amount if req.price else None
         }}
+    except ValueError as e:
+        # known errors from the spider (e.g. navigation/select timeouts)
+        logger.error(f"Spider error: {e}")
+        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as e:
+        logger.exception("Unexpected error running spider")
+        raise HTTPException(status_code=500, detail="Internal server error")
     finally:
         await page.close()
