@@ -118,3 +118,10 @@ COUT_CERTIFICAT_SELECTORS = [
     "div.section-content strong",
     "p.sp-blue strong",
 ]
+
+LABEL_AUTONOMIE_50KM_OUI_SELECTORS = [
+    "label[for='Autonomie50Km_1']",
+    "div.fr-radio-group.fr-radio-rich label.fr-label",
+    "input#Autonomie50Km_1 + label",
+    "input[name='Autonomie50Km'][value='Oui'] + label",
+]

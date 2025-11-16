@@ -2,6 +2,7 @@ from playwright.async_api import Page
 from playwright.async_api import TimeoutError
 from typing import List, Optional
 from spider.selectors import (
+    LABEL_AUTONOMIE_50KM_OUI_SELECTORS,
     LABEL_FRANCE_IMPORT_SELECTORS,
     LABEL_INVALIDITE_NON_SELECTORS,
     SELECT_DEMARCHE_SELECTORS,
@@ -46,8 +47,13 @@ class CO2Spider:
         await self.input(page, INPUT_DATE_MISE_EN_CIRCULATION_SELECTORS, content=date, error_message="Date input not found")
         await self.input(page, INPUT_PUISSANCE_ADM_SAISIE_SELECTORS, content=power, error_message="Puissance input not found")
         await self.select(page, SELECT_ENERGIE_SELECTORS, value=energy, error_message="Type vehicule select not found")
+        
+        if energy == "12" or energy == "3":
+            await self.click(page, LABEL_AUTONOMIE_50KM_OUI_SELECTORS, "autonomie 50km oui label not found")
+            
         await self.click(page, LABEL_INVALIDITE_NON_SELECTORS, "Invalidite non label not found", timeout=2000)
         await self.click(page, LABEL_RECEPTION_COMMUNAUTAIRE_OUI_SELECTORS, "Reception communautaire oui label not found")
+        
         if energy != "8" and energy != "3" and energy != "12":
             await self.input(page, INPUT_TAUX_CO2_SAISI_SELECTORS, content=emission, error_message="Taux CO2 input not found")
             await self.click(page, LABEL_VEHICULE_8PLACES_NON_SELECTORS, "Vehicule 8 places non label not found")
@@ -61,19 +67,22 @@ class CO2Spider:
 
         return result
 
-    async def click(self, 
-        page: Page, 
+    async def click(
+        self,
+        page: Page,
         selectors: List[str],
         error_message: str,
-        timeout: Optional[int] = 1000
+        timeout: Optional[int] = 2000
     ):
         for selector in selectors:
             try:
-                await page.wait_for_selector(selector, timeout=timeout)
+                await page.wait_for_selector(selector, state="visible", timeout=timeout)
                 await page.click(selector)
                 return
             except TimeoutError:
-                logger.warning(f"Selector timeout: {selector}")
+                await page.locator(selector).count()
+            except Exception as e:
+                logger.warning(f"Click failed on {selector}: {e}")
 
         raise ValueError(error_message)
 
