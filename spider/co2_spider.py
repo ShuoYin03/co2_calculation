@@ -1,5 +1,5 @@
 from playwright.async_api import Page
-from playwright.async_api import TimeoutError
+from playwright.async_api import TimeoutError, Error
 from typing import List, Optional
 from spider.selectors import (
     LABEL_AUTONOMIE_50KM_OUI_SELECTORS,
@@ -32,8 +32,8 @@ class CO2Spider:
     async def run(self, page: Page, date: str, power: str, emission: str, energy: str, weight: str, region: str):
         try:
             await page.goto(self.url, timeout=60000, wait_until="domcontentloaded")
-        except TimeoutError as e:
-            logger.error(f"Initial navigation timeout to {self.url}: {e}")
+        except (TimeoutError, Error) as e:
+            logger.error(f"Initial navigation error to {self.url} ({e.__class__.__name__}): {e}")
 
             try:
                 await page.goto(self.url, timeout=120000, wait_until="networkidle")
