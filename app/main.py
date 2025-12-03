@@ -47,6 +47,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+@app.get("/health")
+@app.head("/health")
+def health_check():
+    return {"status": "ok"}
+
 @app.get("/", dependencies=[Depends(validate_api_key)])
 def read_root():
     return {"message": "Hello, world!"}

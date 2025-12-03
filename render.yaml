@@ -5,6 +5,7 @@ services:
     dockerfilePath: Dockerfile
     plan: standard
     autoDeploy: true
+    healthCheckPath: /health
     envVars:
       - key: API_KEY
         sync: false
