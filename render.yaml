@@ -17,7 +17,7 @@ services:
         sync: false
 
       - key: MAX_CONCURRENT_BROWSERS
-        value: 1
+        value: 2
       - key: WORKERS
         value: 1
       - key: MIN_REQUEST_DELAY

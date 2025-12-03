@@ -19,12 +19,12 @@ goto invalid
 
 :config1
 echo 启动本地开发配置 (保守模式 - 避免限流)...
-set MAX_CONCURRENT_BROWSERS=4
+set MAX_CONCURRENT_BROWSERS=1
 set WORKERS=1
 set MIN_REQUEST_DELAY=1.0
 set MAX_REQUEST_DELAY=3.0
 set LOG_LEVEL=debug
-echo (4并发, 1-3秒延迟)
+echo (1并发, 1-3秒延迟)
 goto run
 
 :config2
@@ -58,8 +58,12 @@ echo 警告: 此配置可能触发限流!
 goto run
 
 :config5
-set /p MAX_CONCURRENT_BROWSERS=并发浏览器数 (MAX_CONCURRENT_BROWSERS):
-set /p WORKERS=Worker数量 (WORKERS):
+echo.
+echo 自定义配置:
+set /p MAX_CONCURRENT_BROWSERS=并发浏览器数 (MAX_CONCURRENT_BROWSERS, 推荐1-3):
+set /p WORKERS=Worker数量 (WORKERS, Windows强制为1):
+set /p MIN_REQUEST_DELAY=最小请求延迟/秒 (MIN_REQUEST_DELAY, 推荐0.5-2.0):
+set /p MAX_REQUEST_DELAY=最大请求延迟/秒 (MAX_REQUEST_DELAY, 推荐1.0-4.0):
 set /p LOG_LEVEL=日志级别 (debug/info/warning/error):
 goto run
 
@@ -73,6 +77,8 @@ echo.
 echo 当前配置:
 echo    MAX_CONCURRENT_BROWSERS: %MAX_CONCURRENT_BROWSERS%
 echo    WORKERS: %WORKERS%
+echo    MIN_REQUEST_DELAY: %MIN_REQUEST_DELAY% 秒
+echo    MAX_REQUEST_DELAY: %MAX_REQUEST_DELAY% 秒
 echo    LOG_LEVEL: %LOG_LEVEL%
 set /a max_concurrent=%MAX_CONCURRENT_BROWSERS% * %WORKERS%
 echo    预期最大并发: %max_concurrent% 个请求
