@@ -21,6 +21,8 @@ from spider.selectors import (
     COUT_CERTIFICAT_SELECTORS
 )
 import logging
+import asyncio
+import random
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,17 +32,30 @@ class CO2Spider:
         self.url = "https://www.service-public.fr/simulateur/calcul/cout-certificat-immatriculation"
         
     async def run(self, page: Page, date: str, power: str, emission: str, energy: str, weight: str, region: str):
-        try:
-            await page.goto(self.url, timeout=60000, wait_until="domcontentloaded")
-        except (TimeoutError, Error) as e:
-            logger.error(f"Initial navigation error to {self.url} ({e.__class__.__name__}): {e}")
+        # 添加随机延迟模拟人类行为
+        await asyncio.sleep(random.uniform(0.2, 0.8))
 
+        # 尝试导航,增加重试次数
+        max_retries = 3
+        for attempt in range(max_retries):
             try:
-                await page.goto(self.url, timeout=120000, wait_until="networkidle")
-            except TimeoutError as e2:
-                logger.error(f"Retry navigation timeout to {self.url}: {e2}")
+                await page.goto(self.url, timeout=60000, wait_until="domcontentloaded")
+                break  # 成功则跳出循环
+            except (TimeoutError, Error) as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Navigation attempt {attempt + 1} failed, retrying after delay...")
+                    await asyncio.sleep(random.uniform(2, 5))  # 重试前等待
+                    continue
 
-                raise ValueError(f"Navigation to {self.url} timed out after retries") from e2
+                logger.error(f"Initial navigation error to {self.url} ({e.__class__.__name__}): {e}")
+
+                # 最后一次尝试用更宽松的策略
+                try:
+                    await asyncio.sleep(3)
+                    await page.goto(self.url, timeout=120000, wait_until="networkidle")
+                except TimeoutError as e2:
+                    logger.error(f"All navigation attempts failed to {self.url}: {e2}")
+                    raise ValueError(f"Navigation to {self.url} failed after {max_retries} retries - possible rate limiting") from e2
         await self.select(page, SELECT_DEMARCHE_SELECTORS, value="1", error_message="Demarche select not found")
         await self.click(page, LABEL_FRANCE_IMPORT_SELECTORS, "France import label not found")
         await self.select(page, SELECT_TYPE_VEHICULE_SELECTORS, value="1", error_message="Type vehicule select not found")
@@ -63,7 +78,6 @@ class CO2Spider:
         await self.select(page, SELECT_DEPARTEMENT_SELECTORS, value=region, error_message="Departement select not found")
         await self.click(page, BUTTON_RESULT_SELECTORS, "Result button not found")
         result = await self.get_text(page, COUT_CERTIFICAT_SELECTORS, error_message="Result text not found")
-        await page.close()
 
         return result
 
