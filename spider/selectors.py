@@ -1,10 +1,10 @@
-# COOKIE_CONSENT_BUTTONS = [
-#     "button[title*='Accepter']",
-#     "button:has-text('Accepter')",
-#     "button.orejime-Notice-saveButton",
-#     "button[class*='save']",
-#     "button[type='button']:has-text('Accepter')"
-# ]
+COOKIE_CONSENT_BUTTONS = [
+    "button[title*='Accepter']",
+    "button:has-text('Accepter')",
+    "button.orejime-Notice-saveButton",
+    "button[class*='save']",
+    "button[type='button']:has-text('Accepter')"
+]
 
 LABEL_FRANCE_IMPORT_SELECTORS = [
     "label[for='franceOuImport_2']",

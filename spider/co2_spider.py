@@ -2,6 +2,7 @@ from playwright.async_api import Page
 from playwright.async_api import TimeoutError, Error
 from typing import List, Optional
 from spider.selectors import (
+    COOKIE_CONSENT_BUTTONS,
     LABEL_AUTONOMIE_50KM_OUI_SELECTORS,
     LABEL_FRANCE_IMPORT_SELECTORS,
     LABEL_INVALIDITE_NON_SELECTORS,
@@ -40,6 +41,7 @@ class CO2Spider:
         for attempt in range(max_retries):
             try:
                 await page.goto(self.url, timeout=60000, wait_until="domcontentloaded")
+                await self.check_rate_limit(page)
                 break  # 成功则跳出循环
             except (TimeoutError, Error) as e:
                 if attempt < max_retries - 1:
@@ -53,10 +55,13 @@ class CO2Spider:
                 try:
                     await asyncio.sleep(3)
                     await page.goto(self.url, timeout=120000, wait_until="networkidle")
+                    await self.check_rate_limit(page)
                 except TimeoutError as e2:
                     logger.error(f"All navigation attempts failed to {self.url}: {e2}")
                     raise ValueError(f"Navigation to {self.url} failed after {max_retries} retries - possible rate limiting") from e2
-        await self.select(page, SELECT_DEMARCHE_SELECTORS, value="1", error_message="Demarche select not found")
+        
+        await self.handle_cookie_banner(page)
+        await self.select(page, SELECT_DEMARCHE_SELECTORS, value="1", error_message="Demarche select not found", timeout=10000)
         await self.click(page, LABEL_FRANCE_IMPORT_SELECTORS, "France import label not found")
         await self.select(page, SELECT_TYPE_VEHICULE_SELECTORS, value="1", error_message="Type vehicule select not found")
         await self.input(page, INPUT_DATE_MISE_EN_CIRCULATION_SELECTORS, content=date, error_message="Date input not found")
@@ -80,6 +85,39 @@ class CO2Spider:
         result = await self.get_text(page, COUT_CERTIFICAT_SELECTORS, error_message="Result text not found")
 
         return result
+
+    async def check_rate_limit(self, page: Page):
+        """Check if the page is showing a rate limit/overload message"""
+        try:
+            # Check for rate limit message
+            # Using a short timeout because if it's there, it should be visible immediately after load
+            if await page.get_by_text("Service-public.fr renforce temporairement son dispositif", exact=False).is_visible(timeout=1000):
+                logger.error("Rate limit page detected: Service-public.fr renforce temporairement...")
+                raise Exception("Rate limit detected: Service-public.fr is overloaded")
+            
+            if await page.get_by_text("En raison d’un trafic particulièrement important", exact=False).is_visible(timeout=1000):
+                logger.error("Rate limit page detected: En raison d’un trafic particulièrement important...")
+                raise Exception("Rate limit detected: Service-public.fr is overloaded")
+                
+        except TimeoutError:
+            # Element not found, which is good
+            pass
+
+    async def handle_cookie_banner(self, page: Page):
+        try:
+            for selector in COOKIE_CONSENT_BUTTONS:
+                try:
+                    # Check if button exists and is visible with a short timeout
+                    # We don't want to wait long if it's not there
+                    if await page.is_visible(selector, timeout=2000):
+                        logger.info(f"Found cookie banner with selector: {selector}")
+                        await page.click(selector)
+                        await asyncio.sleep(1) # Wait for banner to disappear/animation
+                        return
+                except:
+                    continue
+        except Exception as e:
+            logger.warning(f"Error handling cookie banner: {e}")
 
     async def click(
         self,

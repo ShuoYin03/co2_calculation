@@ -21,8 +21,8 @@ class ProxyManager:
 
                 self.proxies = []
                 for proxy in data.get("results", []):
-                    proxy_url = f"http://{proxy['username']}:{proxy['password']}@{proxy['proxy_address']}:{proxy['port']}"
-                    self.proxies.append(proxy_url)
+                    # Store the full proxy dict to extract fields later
+                    self.proxies.append(proxy)
 
                 logger.info(f"Fetched {len(self.proxies)} proxies from Webshare API")
                 return True
@@ -34,8 +34,12 @@ class ProxyManager:
         if not self.proxies:
             return None
 
-        proxy_url = random.choice(self.proxies)
-        return {"server": proxy_url}
+        proxy_data = random.choice(self.proxies)
+        return {
+            "server": f"http://{proxy_data['proxy_address']}:{proxy_data['port']}",
+            "username": proxy_data['username'],
+            "password": proxy_data['password']
+        }
 
     def has_proxies(self) -> bool:
         return len(self.proxies) > 0

@@ -9,7 +9,8 @@ dotenv.load_dotenv()
 # Simple asyncio-based load tester for POST /api/calculate-tax
 # 针对 2GB RAM + 1 CPU Render 实例优化
 
-HOST = os.getenv("TEST_HOST", "https://co2-calculation-9ciy.onrender.com")
+# HOST = os.getenv("TEST_HOST", "https://co2-calculation-9ciy.onrender.com")
+HOST = os.getenv("TEST_HOST", "http://localhost:8000")  # 本地测试时使用
 API_KEY = os.getenv("API_KEY", "")  # 必须设置你的真实API_KEY
 CONCURRENCY = int(os.getenv("TEST_CONCURRENCY", "3"))  # 保守模式: 1个并发
 REQUESTS_PER_WORKER = int(os.getenv("TEST_REQUESTS", "10"))  # 减少请求数

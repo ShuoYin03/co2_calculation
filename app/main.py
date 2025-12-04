@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     playwright = await async_playwright().start()
     browser = await playwright.chromium.launch(
-        headless=True,
+        headless=False,
         args=BROWSER_ARGS,
     )
     spider = CO2Spider()
@@ -31,60 +31,15 @@ async def lifespan(app: FastAPI):
         else:
             logger.warning("Proxy enabled but failed to fetch proxies, running without proxy")
 
-    # 创建 context 池 - 复用以提升性能
-    context_pool = []
-    for _ in range(MAX_CONCURRENT_BROWSERS):
-        context_options = {
-            "user_agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/131.0.0.0 Safari/537.36"
-            ),
-            "viewport": {"width": 1920, "height": 1080},
-            "locale": "fr-FR",
-            "extra_http_headers": {
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-                "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
-                "Accept-Encoding": "gzip, deflate, br",
-                "DNT": "1",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-                "Sec-Fetch-Dest": "document",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-Site": "none",
-                "Sec-Fetch-User": "?1",
-                "Cache-Control": "max-age=0",
-            },
-        }
-
-        if proxy_manager and proxy_manager.has_proxies():
-            proxy = proxy_manager.get_random_proxy()
-            if proxy:
-                context_options["proxy"] = proxy
-
-        context = await browser.new_context(**context_options)
-        context_pool.append(context)
-
-    logger.info(f"Created {len(context_pool)} browser contexts for connection pooling")
-
     app.state.playwright = playwright
     app.state.browser = browser
     app.state.spider = spider
     app.state.semaphore = asyncio.Semaphore(MAX_CONCURRENT_BROWSERS)
     app.state.proxy_manager = proxy_manager
-    app.state.context_pool = context_pool
-    app.state.context_queue = asyncio.Queue()
-
-    # 将所有 context 放入队列
-    for ctx in context_pool:
-        await app.state.context_queue.put(ctx)
 
     yield
 
     try:
-        # 清理 context 池
-        for context in context_pool:
-            await context.close()
         await browser.close()
         await playwright.stop()
     except Exception as e:
@@ -108,41 +63,72 @@ async def calculate_tax(req: CalculateTaxRequest):
 
     pf = calc_pf(req.power, req.emission)
 
-    # 从 context 队列获取一个复用的 context (自动控制并发)
-    context = await app.state.context_queue.get()
-    page = None
-    try:
-        # 添加随机延迟,避免被网站识别为爬虫
-        await asyncio.sleep(random.uniform(MIN_REQUEST_DELAY, MAX_REQUEST_DELAY))
+    async with app.state.semaphore:
+        context = None
+        page = None
+        try:
+            # Prepare context options
+            context_options = {
+                "user_agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/131.0.0.0 Safari/537.36"
+                ),
+                "viewport": {"width": 1920, "height": 1080},
+                "locale": "fr-FR",
+                "extra_http_headers": {
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                    "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "DNT": "1",
+                    "Connection": "keep-alive",
+                    "Upgrade-Insecure-Requests": "1",
+                    "Sec-Fetch-Dest": "document",
+                    "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-Site": "none",
+                    "Sec-Fetch-User": "?1",
+                    "Cache-Control": "max-age=0",
+                },
+            }
+            
+            # Get fresh proxy for this request
+            if app.state.proxy_manager and app.state.proxy_manager.has_proxies():
+                proxy = app.state.proxy_manager.get_random_proxy()
+                if proxy:
+                    context_options["proxy"] = proxy
 
-        # 创建新 page (轻量级操作)
-        page = await context.new_page()
+            context = await app.state.browser.new_context(**context_options)
+            
+            # 添加随机延迟,避免被网站识别为爬虫
+            await asyncio.sleep(random.uniform(MIN_REQUEST_DELAY, MAX_REQUEST_DELAY))
 
-        tax_amount = await app.state.spider.run(
-            page,
-            date=reg_date,
-            power=str(pf),
-            emission=str(req.emission),
-            energy=req.energy,
-            weight=str(req.weight),
-            region=str(req.region),
-        )
-        tax_amount = float(tax_amount.replace("€", "").replace(",", ".").replace(" ", "").strip())
+            # 创建新 page (轻量级操作)
+            page = await context.new_page()
 
-        return {"result": {
-            "tax_amount": tax_amount,
-            "total_price": req.price + tax_amount if req.price else None
-        }}
-    except ValueError as e:
-        # known errors from the spider (e.g. navigation/select timeouts)
-        logger.error(f"Spider error: {e}")
-        raise HTTPException(status_code=502, detail=str(e))
-    except Exception as e:
-        logger.exception("Unexpected error running spider")
-        raise HTTPException(status_code=500, detail="Internal server error")
-    finally:
-        # 只关闭 page,复用 context
-        if page:
-            await page.close()
-        # 将 context 放回队列供下次使用
-        await app.state.context_queue.put(context)
+            tax_amount = await app.state.spider.run(
+                page,
+                date=reg_date,
+                power=str(pf),
+                emission=str(req.emission),
+                energy=req.energy,
+                weight=str(req.weight),
+                region=str(req.region),
+            )
+            tax_amount = float(tax_amount.replace("€", "").replace(",", ".").replace(" ", "").strip())
+
+            return {"result": {
+                "tax_amount": tax_amount,
+                "total_price": req.price + tax_amount if req.price else None
+            }}
+        except ValueError as e:
+            # known errors from the spider (e.g. navigation/select timeouts)
+            logger.error(f"Spider error: {e}")
+            raise HTTPException(status_code=502, detail=str(e))
+        except Exception as e:
+            logger.exception("Unexpected error running spider")
+            raise HTTPException(status_code=500, detail="Internal server error")
+        finally:
+            if page:
+                await page.close()
+            if context:
+                await context.close()
