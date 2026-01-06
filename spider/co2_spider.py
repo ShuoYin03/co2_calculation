@@ -82,7 +82,6 @@ class CO2Spider:
             await self.input(page, INPUT_POIDS_SAISI_SELECTORS, content=weight, error_message="Poids input not found")
         await self.select(page, SELECT_DEPARTEMENT_SELECTORS, value=region, error_message="Departement select not found")
         await self.click(page, BUTTON_RESULT_SELECTORS, "Result button not found")
-        input()
         result = await self.get_text(page, COUT_CERTIFICAT_SELECTORS, error_message="Result text not found")
 
         return result
