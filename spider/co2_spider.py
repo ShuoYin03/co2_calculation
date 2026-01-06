@@ -52,7 +52,7 @@ class CO2Spider:
                 # 最后一次尝试用更宽松的策略
                 try:
                     await asyncio.sleep(3)
-                    await page.goto(self.url, timeout=120000, wait_until="networkidle")
+                    await page.goto(self.url, timeout=120000, wait_until="domcontentloaded")
                     await self.check_rate_limit(page)
                 except TimeoutError as e2:
                     logger.error(f"All navigation attempts failed to {self.url}: {e2}")
@@ -82,7 +82,7 @@ class CO2Spider:
             await self.input(page, INPUT_POIDS_SAISI_SELECTORS, content=weight, error_message="Poids input not found")
         await self.select(page, SELECT_DEPARTEMENT_SELECTORS, value=region, error_message="Departement select not found")
         await self.click(page, BUTTON_RESULT_SELECTORS, "Result button not found")
-
+        input()
         result = await self.get_text(page, COUT_CERTIFICAT_SELECTORS, error_message="Result text not found")
 
         return result

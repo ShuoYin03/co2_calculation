@@ -7,8 +7,7 @@ import logging
 from models.form_input import CalculateTaxRequest
 from utils.pf_calculate import calc_pf
 import asyncio
-import random
-from config import MAX_CONCURRENT_BROWSERS, BROWSER_ARGS, MIN_REQUEST_DELAY, MAX_REQUEST_DELAY, USE_PROXY, WEBSHARE_API_KEY
+from config import MAX_CONCURRENT_BROWSERS, BROWSER_ARGS, USE_PROXY, WEBSHARE_API_KEY
 from utils.proxy_manager import ProxyManager
 
 logger = logging.getLogger(__name__)
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     playwright = await async_playwright().start()
     browser = await playwright.chromium.launch(
-        headless=True,
+        headless=False,
         args=BROWSER_ARGS,
     )
     spider = CO2Spider()
@@ -74,20 +73,11 @@ async def calculate_tax(req: CalculateTaxRequest):
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
                     "Chrome/131.0.0.0 Safari/537.36"
                 ),
-                "viewport": {"width": 1920, "height": 1080},
+                "viewport": {"width": 1280, "height": 720},
                 "locale": "fr-FR",
                 "extra_http_headers": {
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
                     "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
-                    "Accept-Encoding": "gzip, deflate, br",
                     "DNT": "1",
-                    "Connection": "keep-alive",
-                    "Upgrade-Insecure-Requests": "1",
-                    "Sec-Fetch-Dest": "document",
-                    "Sec-Fetch-Mode": "navigate",
-                    "Sec-Fetch-Site": "none",
-                    "Sec-Fetch-User": "?1",
-                    "Cache-Control": "max-age=0",
                 },
             }
             
@@ -98,9 +88,15 @@ async def calculate_tax(req: CalculateTaxRequest):
                     context_options["proxy"] = proxy
 
             context = await app.state.browser.new_context(**context_options)
-            
-            # 添加随机延迟,避免被网站识别为爬虫
-            await asyncio.sleep(random.uniform(MIN_REQUEST_DELAY, MAX_REQUEST_DELAY))
+
+            # Reduce bandwidth/memory by aborting heavy, non-essential resources.
+            async def _route_handler(route, request):
+                if request.resource_type in {"image", "media", "font"}:
+                    await route.abort()
+                    return
+                await route.continue_()
+
+            await context.route("**/*", _route_handler)
 
             # 创建新 page (轻量级操作)
             page = await context.new_page()
