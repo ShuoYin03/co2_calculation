@@ -75,11 +75,12 @@ class CO2Spider:
 
         if energy != "8":
             await self.input(page, INPUT_TAUX_CO2_SAISI_SELECTORS, content=emission, error_message="Taux CO2 input not found")
-            await self.click(page, LABEL_VEHICULE_8PLACES_NON_SELECTORS, "Vehicule 8 places non label not found")
+            if energy != "1":
+                await self.click(page, LABEL_VEHICULE_8PLACES_NON_SELECTORS, "Vehicule 8 places non label not found")
             # if energy != "16" and energy != "1":
             #     await self.click(page, LABEL_PERSON_MORALE_LOCATION_NON_SELECTORS, "Person morale location non label not found")
             #     await self.click(page, LABEL_PERSONNE_MORALE_NON_SELECTORS, "Personne morale non label not found")
-            await self.input(page, INPUT_POIDS_SAISI_SELECTORS, content=weight, error_message="Poids input not found")
+                await self.input(page, INPUT_POIDS_SAISI_SELECTORS, content=weight, error_message="Poids input not found")
         await self.select(page, SELECT_DEPARTEMENT_SELECTORS, value=region, error_message="Departement select not found")
         await self.click(page, BUTTON_RESULT_SELECTORS, "Result button not found")
         result = await self.get_text(page, COUT_CERTIFICAT_SELECTORS, error_message="Result text not found")
