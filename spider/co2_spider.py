@@ -82,9 +82,14 @@ class CO2Spider:
         await self.input(page, INPUT_POIDS_SAISI_SELECTORS, content=weight, error_message="Poids input not found", fail_on_error=False)
         await self.select(page, SELECT_DEPARTEMENT_SELECTORS, value=region, error_message="Departement select not found", fail_on_error=False)
         await self.click(page, BUTTON_RESULT_SELECTORS, "Result button not found", fail_on_error=False)
-        result = await self.get_text(page, COUT_CERTIFICAT_SELECTORS, error_message="Result text not found")
-
-        return result
+        
+        try:
+            result = await self.get_text(page, COUT_CERTIFICAT_SELECTORS, error_message="Result text not found")
+            logger.info(f"SUCCESS - Input: {{date={date}, power={power}, emission={emission}, energy={energy}, weight={weight}, region={region}}} -> Result: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"FAILED - Input: {{date={date}, power={power}, emission={emission}, energy={energy}, weight={weight}, region={region}}} -> No result found. Error: {e}")
+            raise e
 
     async def check_rate_limit(self, page: Page):
         """Check if the page is showing a rate limit/overload message"""
@@ -148,7 +153,7 @@ class CO2Spider:
         page: Page,
         selectors: List[str],
         content: str,
-        timeout: int = 1000,
+        timeout: int = 2000,
         clear: bool = True,
         error_message: str = None,
         fail_on_error: bool = True
@@ -178,7 +183,7 @@ class CO2Spider:
         value: str = None,
         label: str = None,
         index: int = None,
-        timeout: int = 1000,
+        timeout: int = 2000,
         error_message: Optional[str] = None,
         fail_on_error: bool = True
     ):
