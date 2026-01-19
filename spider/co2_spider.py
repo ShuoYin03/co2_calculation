@@ -59,30 +59,29 @@ class CO2Spider:
                     raise ValueError(f"Navigation to {self.url} failed after {max_retries} retries - possible rate limiting") from e2
         
         await self.handle_cookie_banner(page)
-        await self.select(page, SELECT_DEMARCHE_SELECTORS, value="1", error_message="Demarche select not found", timeout=10000)
-        await self.click(page, LABEL_FRANCE_IMPORT_SELECTORS, "France import label not found")
-        await self.select(page, SELECT_TYPE_VEHICULE_SELECTORS, value="1", error_message="Type vehicule select not found")
-        await self.input(page, INPUT_DATE_MISE_EN_CIRCULATION_SELECTORS, content=date, error_message="Date input not found")
-        await self.input(page, INPUT_PUISSANCE_ADM_SAISIE_SELECTORS, content=power, error_message="Puissance input not found")
-        await self.select(page, SELECT_ENERGIE_SELECTORS, value=energy, error_message="Type vehicule select not found")
+        await self.select(page, SELECT_DEMARCHE_SELECTORS, value="1", error_message="Demarche select not found", timeout=10000, fail_on_error=False)
+        await self.click(page, LABEL_FRANCE_IMPORT_SELECTORS, "France import label not found", fail_on_error=False)
+        await self.select(page, SELECT_TYPE_VEHICULE_SELECTORS, value="1", error_message="Type vehicule select not found", fail_on_error=False)
+        await self.input(page, INPUT_DATE_MISE_EN_CIRCULATION_SELECTORS, content=date, error_message="Date input not found", fail_on_error=False)
+        await self.input(page, INPUT_PUISSANCE_ADM_SAISIE_SELECTORS, content=power, error_message="Puissance input not found", fail_on_error=False)
+        await self.select(page, SELECT_ENERGIE_SELECTORS, value=energy, error_message="Type vehicule select not found", fail_on_error=False)
 
-        if energy == "3" or energy == "12":
-            await self.click(page, LABEL_AUTONOMIE_50KM_OUI_SELECTORS, "autonomie 50km oui label not found")
+        # if energy == "3" or energy == "12":
+        await self.click(page, LABEL_AUTONOMIE_50KM_OUI_SELECTORS, "autonomie 50km oui label not found", fail_on_error=False)
             
-        if energy != "8":
-            await self.click(page, LABEL_INVALIDITE_NON_SELECTORS, "Invalidite non label not found", timeout=2000)
-            await self.click(page, LABEL_RECEPTION_COMMUNAUTAIRE_OUI_SELECTORS, "Reception communautaire oui label not found")
+        # if energy != "8":
+        await self.click(page, LABEL_INVALIDITE_NON_SELECTORS, "Invalidite non label not found", timeout=2000, fail_on_error=False)
+        await self.click(page, LABEL_RECEPTION_COMMUNAUTAIRE_OUI_SELECTORS, "Reception communautaire oui label not found", fail_on_error=False)
 
-        if energy != "8":
-            await self.input(page, INPUT_TAUX_CO2_SAISI_SELECTORS, content=emission, error_message="Taux CO2 input not found")
-            if energy == "1":
-                await self.click(page, LABEL_VEHICULE_8PLACES_NON_SELECTORS, "Vehicule 8 places non label not found")
+        # if energy != "8":
+        await self.input(page, INPUT_TAUX_CO2_SAISI_SELECTORS, content=emission, error_message="Taux CO2 input not found", fail_on_error=False)
+        await self.click(page, LABEL_VEHICULE_8PLACES_NON_SELECTORS, "Vehicule 8 places non label not found", fail_on_error=False)
             # if energy == "12":
             #     await self.click(page, LABEL_PERSON_MORALE_LOCATION_NON_SELECTORS, "Person morale location non label not found")
             #     await self.click(page, LABEL_PERSONNE_MORALE_NON_SELECTORS, "Personne morale non label not found")
-                await self.input(page, INPUT_POIDS_SAISI_SELECTORS, content=weight, error_message="Poids input not found")
-        await self.select(page, SELECT_DEPARTEMENT_SELECTORS, value=region, error_message="Departement select not found")
-        await self.click(page, BUTTON_RESULT_SELECTORS, "Result button not found")
+        await self.input(page, INPUT_POIDS_SAISI_SELECTORS, content=weight, error_message="Poids input not found", fail_on_error=False)
+        await self.select(page, SELECT_DEPARTEMENT_SELECTORS, value=region, error_message="Departement select not found", fail_on_error=False)
+        await self.click(page, BUTTON_RESULT_SELECTORS, "Result button not found", fail_on_error=False)
         result = await self.get_text(page, COUT_CERTIFICAT_SELECTORS, error_message="Result text not found")
 
         return result
@@ -125,7 +124,8 @@ class CO2Spider:
         page: Page,
         selectors: List[str],
         error_message: str,
-        timeout: Optional[int] = 2000
+        timeout: Optional[int] = 2000,
+        fail_on_error: bool = True
     ):
         for selector in selectors:
             try:
@@ -133,11 +133,15 @@ class CO2Spider:
                 await page.click(selector)
                 return
             except TimeoutError:
-                await page.locator(selector).count()
+                # await page.locator(selector).count() # remove this as it's not needed for logic, just pass
+                pass
             except Exception as e:
                 logger.warning(f"Click failed on {selector}: {e}")
 
-        raise ValueError(error_message)
+        if fail_on_error:
+            raise ValueError(error_message)
+        else:
+            logger.warning(f"Optional step skipped: {error_message}")
 
     async def input(
         self,
@@ -146,7 +150,8 @@ class CO2Spider:
         content: str,
         timeout: int = 1000,
         clear: bool = True,
-        error_message: str = None
+        error_message: str = None,
+        fail_on_error: bool = True
     ):
         for selector in selectors:
             try:
@@ -161,7 +166,10 @@ class CO2Spider:
             except Exception as e:
                 logger.warning(f"Input error for selector {selector}: {e}")
 
-        raise ValueError(error_message)
+        if fail_on_error:
+            raise ValueError(error_message)
+        else:
+            logger.warning(f"Optional step skipped: {error_message}")
 
     async def select(
         self,
@@ -171,7 +179,8 @@ class CO2Spider:
         label: str = None,
         index: int = None,
         timeout: int = 1000,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
+        fail_on_error: bool = True
     ):
         for select_selector in selectors:
             try:
@@ -193,7 +202,10 @@ class CO2Spider:
             except TimeoutError:
                 logger.error(f"Selector timeout: {select_selector}")
 
-        raise ValueError(error_message)
+        if fail_on_error:
+            raise ValueError(error_message)
+        else:
+            logger.warning(f"Optional step skipped: {error_message}")
 
     async def get_text(
         self,
