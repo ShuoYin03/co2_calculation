@@ -17,12 +17,18 @@ services:
         sync: false
 
       - key: MAX_CONCURRENT_BROWSERS
-        value: 1
+        value: 2
       - key: WORKERS
         value: 1
       - key: MIN_REQUEST_DELAY
-        value: 1.0
+        value: 0.8
       - key: MAX_REQUEST_DELAY
-        value: 3.0
+        value: 2.5
+      - key: NAVIGATION_TIMEOUT
+        value: 30000
+      - key: NAVIGATION_RETRY_TIMEOUT
+        value: 45000
+      - key: SELECTOR_TIMEOUT
+        value: 3000
       - key: LOG_LEVEL
-        value: warning
+        value: info
