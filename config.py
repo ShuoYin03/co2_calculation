@@ -14,7 +14,8 @@ BROWSER_ARGS = [
     "--no-sandbox",
     "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
-    "--disable-gpu"
+    "--disable-gpu",
+    "--disable-blink-features=AutomationControlled"
 ]
 
 NAVIGATION_TIMEOUT = int(os.getenv("NAVIGATION_TIMEOUT", "60000"))
